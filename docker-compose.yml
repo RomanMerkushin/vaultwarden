@@ -1,0 +1,62 @@
+version: "3"
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: always
+    environment:
+      - TZ=${TZ}
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=false
+      - SHOW_PASSWORD_HINT=false
+      - DOMAIN=${DOMAIN}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SSL=true
+      - SMTP_EXPLICIT_TLS=true
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - LOG_FILE=/var/log/vw-logs/vaultwarden.log
+    volumes:
+      - ./vw-data:/data
+      - ./vw-logs:/var/log/vw-logs
+
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: always
+    ports:
+      - 80:80  # Needed for the ACME HTTP-01 challenge.
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-config:/config
+      - ./caddy-data:/data
+    environment:
+      - TZ=${TZ}
+      - DOMAIN=${DOMAIN}
+      - EMAIL=${EMAIL}  # The email address to use for ACME registration.
+      - LOG_FILE=/data/access.log
+
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: fail2ban
+    network_mode: "host"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: always
+    volumes:
+      - ./vw-logs:/var/log/vw-logs:ro
+      - ./f2b-data:/data
+    environment:
+      - TZ=${TZ}
+      - F2B_DB_PURGE_AGE=30d
+      - F2B_LOG_TARGET=/data/fail2ban.log
+      - F2B_LOG_LEVEL=INFO
+      - F2B_IPTABLES_CHAIN=INPUT
+    depends_on:
+      - vaultwarden

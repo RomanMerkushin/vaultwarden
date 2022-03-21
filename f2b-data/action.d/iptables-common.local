@@ -1,0 +1,5 @@
+[Init]
+blocktype = DROP
+
+[Init?family=inet6]
+blocktype = DROP

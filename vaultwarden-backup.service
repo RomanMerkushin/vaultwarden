@@ -1,0 +1,7 @@
+[Unit]
+Description=backup the vaultwarden files to yandex disk
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/vaultwarden
+ExecStart=/usr/bin/bash backup.sh
